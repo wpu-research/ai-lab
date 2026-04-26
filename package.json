@@ -1,0 +1,12 @@
+{
+  "name": "ai-lab",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "issue-agent": "node scripts/issue-agent.js",
+    "pr-reviewer": "node scripts/pr-reviewer.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0"
+  }
+}
