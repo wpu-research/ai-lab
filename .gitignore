@@ -8,3 +8,6 @@ dist/
 .next/
 chroma_db/
 .octogent/
+knowledge/.obsidian/workspace.json
+knowledge/.obsidian/workspace-mobile.json
+knowledge/.obsidian/cache
