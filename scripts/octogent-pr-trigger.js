@@ -42,6 +42,24 @@ async function createTerminal(tentacleId, prompt) {
   return data.terminalId;
 }
 
+async function stopTerminal(terminalId) {
+  await api(`/api/terminals/${terminalId}/stop`, 'POST');
+  console.log(`[octogent-pr] Terminal ${terminalId} stopped.`);
+}
+
+async function reviewPosted() {
+  const { execSync } = await import('child_process');
+  try {
+    const out = execSync(
+      `gh api repos/${process.env.GITHUB_REPOSITORY || ''}/issues/${prNumber}/comments --jq 'length'`,
+      { env: { ...process.env, GH_TOKEN: process.env.GH_TOKEN } }
+    ).toString().trim();
+    return parseInt(out, 10) > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function pollUntilDone(terminalId) {
   const deadline = Date.now() + TIMEOUT_MS;
   while (Date.now() < deadline) {
@@ -52,6 +70,12 @@ async function pollUntilDone(terminalId) {
     console.log(`[octogent-pr] Terminal state: ${terminal.lifecycleState}`);
     if (terminal.lifecycleState === 'exited' || terminal.lifecycleState === 'stopped') {
       return terminal.lifecycleState;
+    }
+    // Review postalanmışsa terminali biz durduralım
+    if (await reviewPosted()) {
+      console.log(`[octogent-pr] Review detected for PR #${prNumber}, stopping terminal.`);
+      await stopTerminal(terminalId);
+      return 'exited';
     }
   }
   throw new Error('Timed out waiting for terminal to finish');

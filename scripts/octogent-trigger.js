@@ -42,7 +42,26 @@ async function createTerminal(tentacleId, prompt) {
   return data.terminalId;
 }
 
+async function stopTerminal(terminalId) {
+  await api(`/api/terminals/${terminalId}/stop`, 'POST');
+  console.log(`[octogent] Terminal ${terminalId} stopped.`);
+}
+
+async function prExists(branch) {
+  const { execSync } = await import('child_process');
+  try {
+    const out = execSync(
+      `gh pr list --repo "${process.env.GITHUB_REPOSITORY || ''}" --head "${branch}" --json number --jq length`,
+      { env: { ...process.env, GH_TOKEN: process.env.GH_TOKEN } }
+    ).toString().trim();
+    return parseInt(out, 10) > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function pollUntilDone(terminalId) {
+  const branch = `fix/issue-${issueNumber}`;
   const deadline = Date.now() + TIMEOUT_MS;
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
@@ -52,6 +71,12 @@ async function pollUntilDone(terminalId) {
     console.log(`[octogent] Terminal state: ${terminal.lifecycleState}`);
     if (terminal.lifecycleState === 'exited' || terminal.lifecycleState === 'stopped') {
       return terminal.lifecycleState;
+    }
+    // Agent PR'ı açtıysa terminali biz durduralım
+    if (await prExists(branch)) {
+      console.log(`[octogent] PR detected for ${branch}, stopping terminal.`);
+      await stopTerminal(terminalId);
+      return 'exited';
     }
   }
   throw new Error('Timed out waiting for terminal to finish');
