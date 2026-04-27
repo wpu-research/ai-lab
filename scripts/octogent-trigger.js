@@ -46,8 +46,8 @@ async function pollUntilDone(terminalId) {
   const deadline = Date.now() + TIMEOUT_MS;
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
-    const terminals = await api('/api/terminals');
-    const terminal = terminals.find(t => t.terminalId === terminalId);
+    const snapshots = await api('/api/terminal-snapshots');
+    const terminal = snapshots.find(t => t.terminalId === terminalId);
     if (!terminal) throw new Error(`Terminal ${terminalId} not found`);
     console.log(`[octogent] Terminal state: ${terminal.lifecycleState}`);
     if (terminal.lifecycleState === 'exited' || terminal.lifecycleState === 'stopped') {
